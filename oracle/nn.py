@@ -1,10 +1,10 @@
 import numpy as np
 from numpy import random
 from oracle import actvs
-from oracle import loss
+from oracle import losses
 
 class Net:
-    def __init__(self, arch, cost):
+    def __init__(self, arch, loss="mse"):
         self.arch = arch 
 
         np.random.seed(1)
@@ -21,10 +21,10 @@ class Net:
             if l["activation"] == "relu":
                 self.actvs.append(actvs.Relu())
 
-        if cost == "mse":
-            self.loss = loss.MSE()
-        if cost == "log":
-            self.loss = loss.Logistic()
+        if loss == "mse":
+            self.lossFn = losses.MSE()
+        if loss == "log":
+            self.lossFn = losses.Logistic()
 
         self.arch = arch
         self.biases = biases
@@ -32,7 +32,7 @@ class Net:
 
     def cost(self, a, y):
         m = a.shape[1]
-        return 1/m * np.sum(self.loss.calc(a, y))
+        return 1/m * np.sum(self.lossFn.calc(a, y))
 
     def forward(self, x):
         actvs = [x]
@@ -52,7 +52,7 @@ class Net:
         a = actvs[-1]
         z = sums[-1]
 
-        dz = 1/m * self.loss.calc_deriv(a, y) * self.actvs[-1].calc_deriv(z)
+        dz = 1/m * self.lossFn.calc_deriv(a, y) * self.actvs[-1].calc_deriv(z)
 
         dw = dz.dot(actvs[-2].T)
         db = dz
@@ -88,7 +88,6 @@ class Net:
             dw, db = self.backprop(actvs, sums, y)
             m = actvs[0].shape[1]
             self.update(m, dw, db, lr)
-            sum = np.sum(self.loss.calc(actvs[-1], y))
             if i % 100 == 0:
-                print(1/m * sum)
+                print(1/m * self.cost(actvs[-1], y))
             i += 1
